@@ -1,72 +1,91 @@
-var canvas = document.getElementById("renderCanvas");
+let canvas = document.getElementById("renderCanvas");
+let engine = null;
+let dome = null;
+let scene = null;
+let photoIndex = 0;
 
-        var startRenderLoop = function (engine, canvas) {
-            engine.runRenderLoop(function () {
-                if (sceneToRender && sceneToRender.activeCamera) {
-                    sceneToRender.render();
+async function createScene() {
+    // This creates a basic Babylon Scene object (non-mesh)
+    scene = new BABYLON.Scene(engine);
+
+    scene.debugLayer.show({ embedMode: true });
+
+    let camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI / 2, Math.PI / 2, 5, BABYLON.Vector3.Zero(), scene);
+    camera.attachControl(canvas, true);
+    camera.inputs.attached.mousewheel.detachControl(canvas);
+
+    dome = new BABYLON.PhotoDome(
+        "testdome",
+        "./textures/photo0.jpg",
+        {
+            resolution: 32,
+            size: 1000
+        },
+        scene
+    );
+
+    // FOV
+    dome.fovMultiplier = 2 // Vai de 0.0 a 2.0
+
+    window.addEventListener("keydown", function (e) {
+        switch (e.key) {
+            case "a":
+                photoIndex--
+
+                if (photoIndex < 0) {
+                    photoIndex = 3
                 }
-            });
+                break;
+
+            case "d":
+                photoIndex++
+
+                if (photoIndex > 3) {
+                    photoIndex = 0
+                }
+                break;
+
+            default:
+                console.log("UNKOWN COMMAND")
+                break;
         }
 
-        var engine = null;
-        var scene = null;
-        var sceneToRender = null;
-        var createDefaultEngine = function () { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false }); };
-        var createScene = function () {
-            // This creates a basic Babylon Scene object (non-mesh)
-            var scene = new BABYLON.Scene(engine)
+        if (dome) {
+            dome.dispose();
+            dome = null;
+        }
 
-            var camera = new BABYLON.ArcRotateCamera("camera", BABYLON.Tools.ToRadians(90), BABYLON.Tools.ToRadians(65), 10, BABYLON.Vector3.Zero(), scene);
+        dome = new BABYLON.PhotoDome(
+            "testdome",
+            `./textures/photo${photoIndex}.jpg`,
+            {
+                resolution: 32,
+                size: 1000
+            },
+            scene
+        );
+    });
+}
 
-            // This attaches the camera to the canvas
-            camera.attachControl(canvas, true);
+// Resize
+window.addEventListener("resize", function () {
+    if (engine)
+        engine.resize();
+});
 
-            // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
-            var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+async function initFunction() {
+    engine = new BABYLON.Engine(canvas, true, {
+        preserveDrawingBuffer: false,
+        stencil: false,
+        disableWebGL2Support: false
+    });
 
-            // Default intensity is 1. Let's dim the light a small amount
-            light.intensity = 0.7;
+    await createScene();
 
-            // Our built-in 'ground' shape.
-            var ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 6, height: 6 }, scene);
+    engine.runRenderLoop(function () {
+        if (scene && scene.activeCamera)
+            scene.render();
+    });
+}
 
-            var groundMaterial = new BABYLON.StandardMaterial("Ground Material", scene)
-
-            var groundTexture = new BABYLON.Texture(Assets.textures.checkerboard_basecolor_png.rootUrl, scene)
-
-            groundMaterial.diffuseTexture = groundTexture;
-            groundMaterial.diffuseColor = BABYLON.Color3.Red()
-            ground.material = groundMaterial;
-
-            BABYLON.SceneLoader.ImportMesh("", Assets.meshes.Yeti.rootUrl, Assets.meshes.Yeti.filename, scene, function (newMeshes) {
-                newMeshes[0].scaling = new BABYLON.Vector3(0.1, 0.1, 0.1)
-            });
-
-            return scene;
-        };
-        window.initFunction = async function () {
-
-
-
-            var asyncEngineCreation = async function () {
-                try {
-                    return createDefaultEngine();
-                } catch (e) {
-                    console.log("the available createEngine function failed. Creating the default engine instead");
-                    return createDefaultEngine();
-                }
-            }
-
-            window.engine = await asyncEngineCreation();
-            if (!engine) throw 'engine should not be null.';
-            startRenderLoop(engine, canvas);
-            window.scene = createScene();
-        };
-        initFunction().then(() => {
-            sceneToRender = scene
-        });
-
-        // Resize
-        window.addEventListener("resize", function () {
-            engine.resize();
-        });
+initFunction();
