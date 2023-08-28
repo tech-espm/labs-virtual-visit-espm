@@ -4,8 +4,10 @@ let dome = null;
 let ui = null;
 let scene = null;
 let photoIndex = 0;
-let fadeIn = false;
-let fadeOut = false;
+let fadeDomeIn = false;
+let fadeDomeOut = false;
+let fadeUIIn = false;
+let fadeUIOut = false;
 const MAX_PHOTO_INDEX = 3;
 const FRAME_FADE_PERCENT = 0.01;
 
@@ -44,6 +46,13 @@ let controlMap = {
         if (photoIndex > MAX_PHOTO_INDEX) {
             photoIndex = 0
         }
+    },
+    "m": () => {
+        if (fadeUIIn) {
+            fadeUI("out")
+        } else {
+            fadeUI("in")
+        }
     }
 }
 
@@ -52,8 +61,13 @@ function imageFromMenu(index) {
 }
 
 function fadeDome(direction) { // "in", "out" or "reset"
-    fadeIn = direction === "in"
-    fadeOut = direction === "out"
+    fadeDomeIn = direction === "in"
+    fadeDomeOut = direction === "out"
+}
+
+function fadeUI(direction) { // "in", "out" or "reset"
+    fadeUIIn = direction === "in"
+    fadeUIOut = direction === "out"
 }
 
 async function createScene() {
@@ -76,6 +90,7 @@ async function createScene() {
     scene.onKeyboardObservable.add((kbInfo) => {
         let key = kbInfo.event.key
         if (Object.keys(controlMap).includes(key)) {
+            console.log({ key })
             let controlFunciton = controlMap[key]
             controlFunciton()
         } else {
@@ -89,8 +104,6 @@ function replaceDome(scene) {
         dome.dispose();
         dome = null;
     }
-
-    replaceUI()
 
     return new BABYLON.PhotoDome(
         "dome",
@@ -115,7 +128,9 @@ function replaceUI() {
 }
 
 function attachPanel() {
-    var panel = new BABYLON.GUI.StackPanel();
+    var panel = new BABYLON.GUI.StackPanel("menu");
+
+    panel.alpha = 0
 
     for (let i = 0; i < imagesJSON.length; i++) {
         if (photoIndex != i) {
@@ -153,6 +168,42 @@ window.addEventListener("resize", function () {
         engine.resize();
 });
 
+function renderDome() {
+    if (fadeDomeOut) {
+        dome.material.alpha = Math.max(0, dome.material.alpha - FRAME_FADE_PERCENT);
+        if (dome.material.alpha <= 0) {
+            // fade out acabou! Fazer algo!
+            dome = replaceDome(scene);
+            dome.material.alpha = 0
+
+            fadeDome("in")
+        }
+    } else if (fadeDomeIn) {
+        dome.material.alpha = Math.min(1, dome.material.alpha + FRAME_FADE_PERCENT);
+        if (dome.material.alpha >= 1) {
+            // fade in acabou! Fazer algo!
+
+            fadeDome("reset")
+        }
+    }
+}
+
+function renderUI() {
+    if (fadeUIOut) {
+        ui.getControlByName("menu").alpha = Math.max(0, ui.getControlByName("menu").alpha - FRAME_FADE_PERCENT);
+        if (ui.getControlByName("menu").alpha <= 0) {
+            // fade out acabou! Fazer algo!
+            ui.getControlByName("menu").alpha = 0
+        }
+    } else if (fadeUIIn) {
+        ui.getControlByName("menu").alpha = Math.min(1, ui.getControlByName("menu").alpha + FRAME_FADE_PERCENT);
+        if (ui.getControlByName("menu").alpha >= 1) {
+            // fade in acabou! Fazer algo!
+            ui.getControlByName("menu").alpha = 1
+        }
+    }
+}
+
 async function initFunction() {
     engine = new BABYLON.Engine(canvas, true, {
         preserveDrawingBuffer: false,
@@ -164,22 +215,8 @@ async function initFunction() {
 
     engine.runRenderLoop(function () {
         if (scene && scene.activeCamera) {
-            if (fadeOut) {
-                dome.material.alpha = Math.max(0, dome.material.alpha - FRAME_FADE_PERCENT);
-                if (dome.material.alpha <= 0) {
-                    // fade out acabou! Fazer algo!
-                    dome = replaceDome(scene);
-                    dome.material.alpha = 0
-
-                    fadeDome("in")
-                }
-            } else if (fadeIn) {
-                dome.material.alpha = Math.min(1, dome.material.alpha + FRAME_FADE_PERCENT);
-                if (dome.material.alpha >= 1) {
-                    // fade in acabou! Fazer algo!
-                    fadeDome("reset")
-                }
-            }
+            renderDome()
+            renderUI()
             scene.render();
         }
     });
