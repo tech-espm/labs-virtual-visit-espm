@@ -115,6 +115,8 @@ function replaceUI() {
     ui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
     attachPanel()
+
+    attachMenu()
 }
 
 function attachPanel() {
@@ -126,16 +128,62 @@ function attachPanel() {
         if (photoIndex != i) {
             const image = imagesJSON[i];
 
-            let button = createButton(image, i)
+            let button = createChangeImageButton(image, i)
 
             panel.addControl(button, 0, i)
         }
     }
 
+    let closeButton = createCloseButton()
+
+    panel.addControl(closeButton, 0, imagesJSON.length)
+
     ui.addControl(panel)
 }
 
-function createButton(image, index) {
+function attachMenu() {
+    button = createMenuButton()
+
+    ui.addControl(button);
+}
+
+function createMenuButton() {
+    let button = BABYLON.GUI.Button.CreateSimpleButton("open-overlay", "Menu");
+    button.paddingBottom = '30px'
+    button.width = "160px"
+    button.height = "80px"
+    button.color = 'black'
+    button.background = 'white'
+    button.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    button.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP
+
+    button.onPointerUpObservable.add(uiSwitch);
+
+    return button
+}
+
+function createCloseButton() {
+    let button = BABYLON.GUI.Button.CreateSimpleButton("close-overlay", "Fechar menu");
+    button.paddingBottom = '30px'
+    button.width = "160px"
+    button.height = "80px"
+    button.color = 'black'
+    button.background = 'white'
+
+    button.onPointerUpObservable.add(uiSwitch);
+
+    return button
+}
+
+function uiSwitch() {
+    if (visibleUI) {
+        currRenderMode = "hide-ui"
+    } else {
+        currRenderMode = "reveal-ui"
+    }
+}
+
+function createChangeImageButton(image, index) {
     let button = BABYLON.GUI.Button.CreateSimpleButton("button-" + index, image.name);
     button.paddingBottom = '30px'
     button.width = "160px"
@@ -171,13 +219,7 @@ let controlMap = {
             photoIndex = 0
         }
     },
-    "m": () => {
-        if (visibleUI) {
-            currRenderMode = "hide-ui"
-        } else {
-            currRenderMode = "reveal-ui"
-        }
-    }
+    "m": uiSwitch
 }
 
 function imageFromMenu(index) {
@@ -198,7 +240,7 @@ async function createScene() {
 
     // FOV
     dome.fovMultiplier = 2 // Vai de 0.0 a 2.0
-    
+
     replaceUI()
 
     scene.onKeyboardObservable.add((kbInfo) => {
