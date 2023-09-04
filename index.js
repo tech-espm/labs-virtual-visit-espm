@@ -4,10 +4,8 @@ let dome = null;
 let ui = null;
 let scene = null;
 let photoIndex = 0;
-let fadeDomeIn = false;
-let fadeDomeOut = false;
-let fadeUIIn = false;
-let fadeUIOut = false;
+let visibleUI = false; // Stopping user input on invisible buttons
+let changingImage = false; // Stopping user input during image transition
 const MAX_PHOTO_INDEX = 3;
 const FRAME_FADE_PERCENT = 0.01;
 
@@ -30,73 +28,63 @@ let imagesJSON = [
     }
 ]
 
-let controlMap = {
-    "a": () => {
-        photoIndex--
-        fadeDome("out")
-
-        if (photoIndex < 0) {
-            photoIndex = MAX_PHOTO_INDEX
-        }
+let currRenderMode = "reveal-image" // "show", "change-image", "reveal-image", "reveal-ui", "hide-ui"
+let renderTypes = {
+    "show": () => {
+        // console.log("Showing curr image")
     },
-    "d": () => {
-        photoIndex++
-        fadeDome("out")
+    "change-image": () => {
+        console.log("Changing Image")
+        changingImage = true
 
-        if (photoIndex > MAX_PHOTO_INDEX) {
-            photoIndex = 0
+        ui.getControlByName("menu").alpha = Math.max(0, ui.getControlByName("menu").alpha - FRAME_FADE_PERCENT)
+        if (ui.getControlByName("menu").alpha > 0) {
+            return
         }
+
+        visibleUI = false
+
+        dome.material.alpha = Math.max(0, dome.material.alpha - FRAME_FADE_PERCENT)
+        if (dome.material.alpha > 0) {
+            return
+        }
+
+        replaceDome(scene)
+
+        replaceUI()
+
+        changingImage = false
+        currRenderMode = "reveal-image"
     },
-    "m": () => {
-        if (fadeUIIn) {
-            fadeUI("out")
-        } else {
-            fadeUI("in")
+    "reveal-image": () => {
+        console.log("Revealing Image")
+        dome.material.alpha = Math.min(1, dome.material.alpha + FRAME_FADE_PERCENT)
+        if (dome.material.alpha < 1) {
+            return
         }
+
+        currRenderMode = "show"
+    },
+    "reveal-ui": () => {
+        console.log("Revealing UI")
+        ui.getControlByName("menu").alpha = Math.min(1, ui.getControlByName("menu").alpha + FRAME_FADE_PERCENT)
+        if (ui.getControlByName("menu").alpha < 1) {
+            return
+        }
+
+        visibleUI = true
+        currRenderMode = "show"
+    },
+    "hide-ui": () => {
+        console.log("Hiding UI")
+        ui.getControlByName("menu").alpha = Math.max(0, ui.getControlByName("menu").alpha - FRAME_FADE_PERCENT)
+        if (ui.getControlByName("menu").alpha > 0) {
+            return
+        }
+
+        visibleUI = false
+        currRenderMode = "show"
     }
-}
-
-function imageFromMenu(index) {
-    return imagesJSON[index]
-}
-
-function fadeDome(direction) { // "in", "out" or "reset"
-    fadeDomeIn = direction === "in"
-    fadeDomeOut = direction === "out"
-}
-
-function fadeUI(direction) { // "in", "out" or "reset"
-    fadeUIIn = direction === "in"
-    fadeUIOut = direction === "out"
-}
-
-async function createScene() {
-    // This creates a basic Babylon Scene object (non-mesh)
-    scene = new BABYLON.Scene(engine);
-
-    scene.debugLayer.show({ embedMode: true });
-
-    let camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI / 2, Math.PI / 2, 5, BABYLON.Vector3.Zero(), scene);
-    camera.attachControl(canvas, true);
-    camera.inputs.attached.mousewheel.detachControl(canvas);
-
-    dome = replaceDome(scene)
-
-    replaceUI()
-
-    // FOV
-    dome.fovMultiplier = 2 // Vai de 0.0 a 2.0
-
-    scene.onKeyboardObservable.add((kbInfo) => {
-        let key = kbInfo.event.key
-        if (Object.keys(controlMap).includes(key)) {
-            console.log({ key })
-            let controlFunciton = controlMap[key]
-            controlFunciton()
-        } else {
-            console.log("UNKOWN COMMAND")
-        }
-    });
 }
 
 function replaceDome(scene) {
@@ -105,7 +93,7 @@ function replaceDome(scene) {
         dome = null;
     }
 
-    return new BABYLON.PhotoDome(
+    dome = new BABYLON.PhotoDome(
         "dome",
         imageFromMenu(photoIndex).file,
         {
@@ -114,6 +102,8 @@ function replaceDome(scene) {
         },
         scene
     );
+
+    dome.material.alpha = 0
 }
 
 function replaceUI() {
@@ -154,12 +144,80 @@ function createButton(image, index) {
     button.background = 'white'
 
     button.onPointerUpObservable.add(function () {
-        console.log(`${image.name} PRESSED!`)
         photoIndex = index
-        fadeDome("out")
+        if (visibleUI) {
+            console.log(`${image.name} PRESSED!`)
+            currRenderMode = "change-image"
+        }
     });
 
     return button
+}
+
+let controlMap = {
+    "a": () => {
+        photoIndex--
+        currRenderMode = "change-image"
+
+        if (photoIndex < 0) {
+            photoIndex = MAX_PHOTO_INDEX
+        }
+    },
+    "d": () => {
+        photoIndex++
+        currRenderMode = "change-image"
+
+        if (photoIndex > MAX_PHOTO_INDEX) {
+            photoIndex = 0
+        }
+    },
+    "m": () => {
+        if (visibleUI) {
+            currRenderMode = "hide-ui"
+        } else {
+            currRenderMode = "reveal-ui"
+        }
+    }
+}
+
+function imageFromMenu(index) {
+    return imagesJSON[index]
+}
+
+async function createScene() {
+    // This creates a basic Babylon Scene object (non-mesh)
+    scene = new BABYLON.Scene(engine);
+
+    scene.debugLayer.show({ embedMode: true });
+
+    let camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI / 2, Math.PI / 2, 5, BABYLON.Vector3.Zero(), scene);
+    camera.attachControl(canvas, true);
+    camera.inputs.attached.mousewheel.detachControl(canvas);
+
+    replaceDome(scene)
+
+    // FOV
+    dome.fovMultiplier = 2 // Vai de 0.0 a 2.0
+    
+    replaceUI()
+
+    scene.onKeyboardObservable.add((kbInfo) => {
+        if (changingImage) {
+            return
+        }
+
+        if (kbInfo.type !== BABYLON.KeyboardEventTypes.KEYDOWN) {
+            return
+        }
+
+        let key = kbInfo.event.key
+        if (Object.keys(controlMap).includes(key)) {
+            let controlFunciton = controlMap[key]
+            controlFunciton()
+        } else {
+            console.log("UNKOWN COMMAND")
+        }
+    });
 }
 
 // Resize
@@ -167,42 +225,6 @@ window.addEventListener("resize", function () {
     if (engine)
         engine.resize();
 });
-
-function renderDome() {
-    if (fadeDomeOut) {
-        dome.material.alpha = Math.max(0, dome.material.alpha - FRAME_FADE_PERCENT);
-        if (dome.material.alpha <= 0) {
-            // fade out acabou! Fazer algo!
-            dome = replaceDome(scene);
-            dome.material.alpha = 0
-
-            fadeDome("in")
-        }
-    } else if (fadeDomeIn) {
-        dome.material.alpha = Math.min(1, dome.material.alpha + FRAME_FADE_PERCENT);
-        if (dome.material.alpha >= 1) {
-            // fade in acabou! Fazer algo!
-
-            fadeDome("reset")
-        }
-    }
-}
-
-function renderUI() {
-    if (fadeUIOut) {
-        ui.getControlByName("menu").alpha = Math.max(0, ui.getControlByName("menu").alpha - FRAME_FADE_PERCENT);
-        if (ui.getControlByName("menu").alpha <= 0) {
-            // fade out acabou! Fazer algo!
-            ui.getControlByName("menu").alpha = 0
-        }
-    } else if (fadeUIIn) {
-        ui.getControlByName("menu").alpha = Math.min(1, ui.getControlByName("menu").alpha + FRAME_FADE_PERCENT);
-        if (ui.getControlByName("menu").alpha >= 1) {
-            // fade in acabou! Fazer algo!
-            ui.getControlByName("menu").alpha = 1
-        }
-    }
-}
 
 async function initFunction() {
     engine = new BABYLON.Engine(canvas, true, {
@@ -215,8 +237,7 @@ async function initFunction() {
 
     engine.runRenderLoop(function () {
         if (scene && scene.activeCamera) {
-            renderDome()
-            renderUI()
+            renderTypes[currRenderMode]()
             scene.render();
         }
     });
