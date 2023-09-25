@@ -2,15 +2,10 @@ let canvas = document.getElementById("renderCanvas");
 let engine = null;
 let dome = null;
 let ui = null;
-let uiOpenButton = null;
-let panelButtons = [];
 let scene = null;
-let camera = null;
-let xrHelper = null;
 let photoIndex = 0;
-let visibleUI = true; // Stopping user input on invisible buttons
+let visibleUI = false; // Stopping user input on invisible buttons
 let changingImage = false; // Stopping user input during image transition
-let currRenderMode = "reveal-image" // "show", "change-image", "reveal-image", "reveal-ui", "hide-ui"
 const MAX_PHOTO_INDEX = 3;
 const FRAME_FADE_PERCENT = 0.01;
 
@@ -33,19 +28,7 @@ let imagesJSON = [
     }
 ]
 
-function imageFromMenu(index) {
-    return imagesJSON[index]
-}
-
-function setPanelButtonsVisibility(visibility) {
-    for (let i = 0; i < panelButtons.length; i++) {
-        console.log(panelButtons[i])
-        panelButtons[i].isVisible = visibility;
-    }
-
-    visibleUI = visibility
-}
-
+let currRenderMode = "reveal-image" // "show", "change-image", "reveal-image", "reveal-ui", "hide-ui"
 let renderTypes = {
     "show": () => {
         // console.log("Showing curr image")
@@ -54,7 +37,12 @@ let renderTypes = {
         console.log("Changing Image")
         changingImage = true
 
-        // setPanelButtonsVisibility(false)
+        ui.getControlByName("menu").alpha = Math.max(0, ui.getControlByName("menu").alpha - FRAME_FADE_PERCENT)
+        if (ui.getControlByName("menu").alpha > 0) {
+            return
+        }
+
+        visibleUI = false
 
         dome.material.alpha = Math.max(0, dome.material.alpha - FRAME_FADE_PERCENT)
         if (dome.material.alpha > 0) {
@@ -79,12 +67,22 @@ let renderTypes = {
     },
     "reveal-ui": () => {
         console.log("Revealing UI")
-        // setPanelButtonsVisibility(true)
+        ui.getControlByName("menu").alpha = Math.min(1, ui.getControlByName("menu").alpha + FRAME_FADE_PERCENT)
+        if (ui.getControlByName("menu").alpha < 1) {
+            return
+        }
+
+        visibleUI = true
         currRenderMode = "show"
     },
     "hide-ui": () => {
         console.log("Hiding UI")
-        // setPanelButtonsVisibility(false)
+        ui.getControlByName("menu").alpha = Math.max(0, ui.getControlByName("menu").alpha - FRAME_FADE_PERCENT)
+        if (ui.getControlByName("menu").alpha > 0) {
+            return
+        }
+
+        visibleUI = false
         currRenderMode = "show"
     }
 }
@@ -114,18 +112,17 @@ function replaceUI() {
         ui = null
     }
 
-    ui = new BABYLON.GUI.GUI3DManager(scene);
+    ui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
     attachPanel()
+
+    attachMenu()
 }
 
 function attachPanel() {
-    let anchor = new BABYLON.TransformNode("panel-anchor");
-    panel = new BABYLON.GUI.PlanePanel();
-    panel.linkToTransformNode(anchor);
-    panel.position.z = -1.5;
+    var panel = new BABYLON.GUI.StackPanel("menu");
 
-    ui.addControl(panel)
+    panel.alpha = 0
 
     for (let i = 0; i < imagesJSON.length; i++) {
         if (photoIndex != i) {
@@ -133,30 +130,44 @@ function attachPanel() {
 
             let button = createChangeImageButton(image, i)
 
-            panelButtons.push(button)
-
-            panel.addControl(button)
+            panel.addControl(button, 0, i)
         }
     }
 
     let closeButton = createCloseButton()
 
-    panel.addControl(closeButton)
+    panel.addControl(closeButton, 0, imagesJSON.length)
 
-    panelButtons.push(closeButton)
+    let webxrButton = createWebXRButton()
 
-    let menuButton = createMenuButton()
+    panel.addControl(webxrButton)
 
-    ui.addControl(menuButton);
-    uiOpenButton = menuButton
+    ui.addControl(panel)
+}
 
-    // xrHelper.baseExperience.sessionManager.onXRSessionInit.add(() => {
-    //     panel.linkToTransformNode(xrHelper.baseExperience.camera);
-    // })
+function createWebXRButton() {
+    return createButton("webxr-mode", "Modo WebXR", function () {
+        window.location.href = "./webxr.html"
+    })
+}
 
-    // xrHelper.baseExperience.sessionManager.onXRSessionEnded.add(() => {
-    //     panel.linkToTransformNode(camera);
-    // })
+function attachMenu() {
+    button = createMenuButton()
+
+    ui.addControl(button);
+}
+
+function createMenuButton() {
+    let button = createButton("open-overlay", "Menu", uiSwitch)
+
+    button.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
+    button.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP
+
+    return button
+}
+
+function createCloseButton() {
+    return createButton("close-overlay", "Fechar menu", uiSwitch)
 }
 
 function uiSwitch() {
@@ -167,16 +178,8 @@ function uiSwitch() {
     }
 }
 
-function createMenuButton() {
-    return createHolographicButton("open-overlay", "Abrir menu", true, uiSwitch)
-}
-
-function createCloseButton() {
-    return createHolographicButton("close-overlay", "Fechar menu", false, uiSwitch)
-}
-
 function createChangeImageButton(image, index) {
-    return createHolographicButton("button-" + index, image.name, false, function () {
+    return createButton("button-" + index, image.name, function () {
         photoIndex = index
         if (visibleUI) {
             console.log(`${image.name} PRESSED!`)
@@ -185,13 +188,15 @@ function createChangeImageButton(image, index) {
     })
 }
 
-function createHolographicButton(name, text, visibility, event) {
-    let button = new BABYLON.GUI.HolographicButton(name);
-    button.text = text
-    // button.isVisible = visibility
+function createButton(name, text, event) {
+    let button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
+    button.paddingBottom = '30px'
+    button.width = "160px"
+    button.height = "80px"
+    button.color = 'black'
+    button.background = 'white'
 
     button.onPointerUpObservable.add(event);
-    // button.onPointerClickObservable.add(event);
 
     return button
 }
@@ -216,6 +221,9 @@ let controlMap = {
     "m": uiSwitch
 }
 
+function imageFromMenu(index) {
+    return imagesJSON[index]
+}
 
 async function createScene() {
     // This creates a basic Babylon Scene object (non-mesh)
@@ -223,7 +231,7 @@ async function createScene() {
 
     scene.debugLayer.show({ embedMode: true });
 
-    camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI / 2, Math.PI / 2, 5, BABYLON.Vector3.Zero(), scene);
+    let camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI / 2, Math.PI / 2, 5, BABYLON.Vector3.Zero(), scene);
     camera.attachControl(canvas, true);
     camera.inputs.attached.mousewheel.detachControl(canvas);
 
@@ -231,6 +239,8 @@ async function createScene() {
 
     // FOV
     dome.fovMultiplier = 2 // Vai de 0.0 a 2.0
+
+    replaceUI()
 
     scene.onKeyboardObservable.add((kbInfo) => {
         if (changingImage) {
@@ -249,10 +259,6 @@ async function createScene() {
             console.log("UNKOWN COMMAND")
         }
     });
-
-    xrHelper = await scene.createDefaultXRExperienceAsync()
-
-    replaceUI()
 }
 
 // Resize
