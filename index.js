@@ -134,10 +134,6 @@ function attachPanel() {
         }
     }
 
-    let closeButton = createCloseButton()
-
-    panel.addControl(closeButton, 0, imagesJSON.length)
-
     let webxrButton = createWebXRButton()
 
     panel.addControl(webxrButton)
@@ -158,16 +154,12 @@ function attachMenu() {
 }
 
 function createMenuButton() {
-    let button = createButton("open-overlay", "Menu", uiSwitch)
+    let button = createButton("open-overlay", "Alternar menu", uiSwitch)
 
     button.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
     button.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP
 
     return button
-}
-
-function createCloseButton() {
-    return createButton("close-overlay", "Fechar menu", uiSwitch)
 }
 
 function uiSwitch() {

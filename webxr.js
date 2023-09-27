@@ -242,9 +242,7 @@ async function createScene() {
         }
     });
 
-    xrExperience = await scene.createDefaultXRExperienceAsync({ disableDefaultUI: true });
-
-    await xrExperience.baseExperience.enterXRAsync("immersive-vr", "local-floor");
+    xrHelper = await scene.createDefaultXRExperienceAsync()
 
     replaceUI()
 }
