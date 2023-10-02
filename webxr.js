@@ -13,15 +13,18 @@ let changingImage = false; // Stopping user input during image transition
 let currRenderMode = "reveal-image" // "show", "change-image", "reveal-image", "reveal-ui", "hide-ui"
 const MAX_PHOTO_INDEX = 3;
 const FRAME_FADE_PERCENT = 0.01;
+const ESPM_DARK = new BABYLON.Color3(0.658, 0.197, 0.196)
+const ESPM_LIGHT = new BABYLON.Color3(0.448, 0.117, 0.134)
+
 
 let imagesJSON = [
     {
         file: "./textures/photo0.jpg",
-        name: "Green hills"
+        name: "Green\nhills"
     },
     {
         file: "./textures/photo1.jpg",
-        name: "Another universe"
+        name: "Another\nuniverse"
     },
     {
         file: "./textures/photo2.jpg",
@@ -44,7 +47,7 @@ function setPanelButtonsVisibility(visibility) {
     }
 
     visibleUI = visibility
-    console.log({visibleUI, panelButtons})
+    console.log({ visibleUI, panelButtons })
 }
 
 let renderTypes = {
@@ -125,28 +128,40 @@ function attachPanel() {
     panel = new BABYLON.GUI.PlanePanel();
     panel.linkToTransformNode(anchor);
     panel.position.z = -1.5;
+    panel.columns = 3
+    panel.rows = 2
 
     ui.addControl(panel)
+
+    // Cores ESPM
+    // #a80532
+    // #720322
 
     for (let i = 0; i < imagesJSON.length; i++) {
         if (photoIndex != i) {
             const image = imagesJSON[i];
 
-            let button = createChangeImageButton(image, i)
+            for (let j = 0; j < 3; j++) {
 
-            panelButtons.push(button)
+                let button = createChangeImageButton(image, i)
+                panelButtons.push(button)
 
-            panel.addControl(button)
+                panel.addControl(button)
+
+                // https://doc.babylonjs.com/features/featuresDeepDive/gui/gui3D#holographicbutton
+                overwriteButtonContent(button, image.name)
+            }
         }
     }
 
     let menuButton = createMenuButton()
-    ui.addControl(menuButton);
+    panel.addControl(menuButton);
+    overwriteButtonContent(menuButton, "Alternar menu")
     uiOpenButton = menuButton
 
-    let browserModeButton = createBrowserModeButton()
-    panel.addControl(browserModeButton)
-    panelButtons.push(browserModeButton)
+    // let browserModeButton = createBrowserModeButton()
+    // panel.addControl(browserModeButton)
+    // panelButtons.push(browserModeButton)
 }
 
 function uiSwitch() {
@@ -157,12 +172,25 @@ function uiSwitch() {
     }
 }
 
+function overwriteButtonContent(button, text) {
+    let content = new BABYLON.GUI.TextBlock();
+    content.text = text;
+    content.color = "White";
+    content.fontSize = 36;
+    button.content = content
+    button.scaling = button.scaling.scale(1.8)
+    button.frontMaterial = new BABYLON.GUI.FluentButtonMaterial("espm", scene);
+    button.frontMaterial.alphaMode = BABYLON.Engine.ALPHA_ONEONE;
+    button.frontMaterial.albedoColor = ESPM_LIGHT;
+    button.backMaterial.albedoColor = ESPM_DARK;
+}
+
 function createMenuButton() {
-    return createHolographicButton("open-overlay", "Alternar menu", true, uiSwitch)
+    return createHolographicButton("open-overlay", uiSwitch)
 }
 
 function createChangeImageButton(image, index) {
-    return createHolographicButton("button-" + index, image.name, false, function () {
+    return createHolographicButton("button-" + index, function () {
         photoIndex = index
         if (visibleUI) {
             console.log(`${image.name} PRESSED!`)
@@ -171,17 +199,15 @@ function createChangeImageButton(image, index) {
     })
 }
 
-function createBrowserModeButton() {
-    return createHolographicButton("browser-mode", "Modo Navegador", false, function () {
-        window.location.href = "./index.html"
-    })
-}
+// function createBrowserModeButton() {
+//     return createHolographicButton("browser-mode", function () {
+//         window.location.href = "./index.html"
+//     })
+// }
 
-function createHolographicButton(name, text, visibility, event) {
+function createHolographicButton(name, event) {
     let button = new BABYLON.GUI.HolographicButton(name);
-    button.text = text
     // button.isVisible = visibility
-
     button.onPointerUpObservable.add(event);
     // button.onPointerClickObservable.add(event);
 
