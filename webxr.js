@@ -42,20 +42,16 @@ function imageFromMenu(index) {
 
 function setPanelButtonsVisibility(visibility) {
     for (let i = 0; i < panelButtons.length; i++) {
-        console.log(panelButtons[i])
         panelButtons[i].isVisible = visibility;
     }
 
     visibleUI = visibility
-    console.log({ visibleUI, panelButtons })
 }
 
 let renderTypes = {
     "show": () => {
-        // console.log("Showing curr image")
     },
     "change-image": () => {
-        console.log("Changing Image")
         changingImage = true
 
         // setPanelButtonsVisibility(false)
@@ -73,7 +69,6 @@ let renderTypes = {
         currRenderMode = "reveal-image"
     },
     "reveal-image": () => {
-        console.log("Revealing Image")
         dome.material.alpha = Math.min(1, dome.material.alpha + FRAME_FADE_PERCENT)
         if (dome.material.alpha < 1) {
             return
@@ -82,12 +77,10 @@ let renderTypes = {
         currRenderMode = "show"
     },
     "reveal-ui": () => {
-        console.log("Revealing UI")
         setPanelButtonsVisibility(true)
         currRenderMode = "show"
     },
     "hide-ui": () => {
-        console.log("Hiding UI")
         setPanelButtonsVisibility(false)
         currRenderMode = "show"
     }
@@ -239,7 +232,9 @@ async function createScene() {
     // This creates a basic Babylon Scene object (non-mesh)
     scene = new BABYLON.Scene(engine);
 
-    scene.debugLayer.show({ embedMode: true });
+	// Debug / Inspector
+	if (window.debug)
+    	scene.debugLayer.show({ embedMode: true });
 
     camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI / 2, Math.PI / 2, 5, BABYLON.Vector3.Zero(), scene);
     camera.attachControl(canvas, true);
@@ -263,8 +258,6 @@ async function createScene() {
         if (Object.keys(controlMap).includes(key)) {
             let controlFunciton = controlMap[key]
             controlFunciton()
-        } else {
-            console.log("UNKOWN COMMAND")
         }
     });
 

@@ -31,10 +31,8 @@ let imagesJSON = [
 let currRenderMode = "reveal-image" // "show", "change-image", "reveal-image", "reveal-ui", "hide-ui"
 let renderTypes = {
     "show": () => {
-        // console.log("Showing curr image")
     },
     "change-image": () => {
-        console.log("Changing Image")
         changingImage = true
 
         ui.getControlByName("menu").alpha = Math.max(0, ui.getControlByName("menu").alpha - FRAME_FADE_PERCENT)
@@ -57,7 +55,6 @@ let renderTypes = {
         currRenderMode = "reveal-image"
     },
     "reveal-image": () => {
-        console.log("Revealing Image")
         dome.material.alpha = Math.min(1, dome.material.alpha + FRAME_FADE_PERCENT)
         if (dome.material.alpha < 1) {
             return
@@ -66,7 +63,6 @@ let renderTypes = {
         currRenderMode = "show"
     },
     "reveal-ui": () => {
-        console.log("Revealing UI")
         ui.getControlByName("menu").alpha = Math.min(1, ui.getControlByName("menu").alpha + FRAME_FADE_PERCENT)
         if (ui.getControlByName("menu").alpha < 1) {
             return
@@ -76,7 +72,6 @@ let renderTypes = {
         currRenderMode = "show"
     },
     "hide-ui": () => {
-        console.log("Hiding UI")
         ui.getControlByName("menu").alpha = Math.max(0, ui.getControlByName("menu").alpha - FRAME_FADE_PERCENT)
         if (ui.getControlByName("menu").alpha > 0) {
             return
@@ -174,7 +169,6 @@ function createChangeImageButton(image, index) {
     return createButton("button-" + index, image.name, function () {
         photoIndex = index
         if (visibleUI) {
-            console.log(`${image.name} PRESSED!`)
             currRenderMode = "change-image"
         }
     })
@@ -221,7 +215,9 @@ async function createScene() {
     // This creates a basic Babylon Scene object (non-mesh)
     scene = new BABYLON.Scene(engine);
 
-    scene.debugLayer.show({ embedMode: true });
+	// Debug / Inspector
+	if (window.debug)
+    	scene.debugLayer.show({ embedMode: true });
 
     let camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI / 2, Math.PI / 2, 5, BABYLON.Vector3.Zero(), scene);
     camera.attachControl(canvas, true);
@@ -247,8 +243,6 @@ async function createScene() {
         if (Object.keys(controlMap).includes(key)) {
             let controlFunciton = controlMap[key]
             controlFunciton()
-        } else {
-            console.log("UNKOWN COMMAND")
         }
     });
 }
