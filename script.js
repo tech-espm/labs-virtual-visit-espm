@@ -2,7 +2,7 @@
 
 const imagens = [
 	{
-		url: "./textures/recepcao.jpg",
+		url: "./textures/recepcao-jt.jpg",
 		nome: "Recepção (JT)"
 	},
 	{
