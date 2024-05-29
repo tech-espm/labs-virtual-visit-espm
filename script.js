@@ -10,7 +10,7 @@ const imagens = [
 		nome: "Biblioteca (JT)"
 	},
 	{
-		url: "./textures/coworking-jt.jpg.jpg",
+		url: "./textures/coworking-jt.jpg",
 		nome: "Coworking (JT)"
 	},
 	{
@@ -30,7 +30,7 @@ const imagens = [
 		nome: "Sala 6º andar (JT)"
 	},
 	{
-		url: "./textures/auditorio-11-2-jt.jpg",
+		url: "./textures/auditorio-11-3-jt.jpg",
 		nome: "Auditório 11º andar (JT)"
 	},
 	{
