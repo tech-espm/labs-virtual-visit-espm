@@ -51,6 +51,7 @@ let menu = null;
 function criarBotao(nome, texto, callback) {
 	const botao = BABYLON.GUI.Button.CreateSimpleButton(nome, texto);
 	botao.paddingBottom = "30px";
+	botao.paddingRight = "30px";
 	botao.width = "160px";
 	botao.height = "80px";
 	botao.color = "black";
@@ -96,17 +97,36 @@ function alternarMenu() {
 		menu = null;
 	} else {
 		camera.inputs.attached.pointers.detachControl(canvas);
+		// https://doc.babylonjs.com/typedoc/classes/BABYLON.GUI.StackPanel
 		menu = new BABYLON.GUI.StackPanel("menu");
+		menu.isVertical = true;
 
-		for (let i = 0; i < imagens.length; i++) {
-			if (i != imagemAtual)
-				menu.addControl(criarBotaoImagem(i));
+		let menuAtual = null;
+
+		for (let i = 0, qtdeAtual = 0; i < imagens.length; i++) {
+			if (i != imagemAtual) {
+				if (!menuAtual || qtdeAtual >= 4) {
+					qtdeAtual = 0;
+					menuAtual = new BABYLON.GUI.StackPanel("menuAtual" + i);
+					menuAtual.isVertical = false;
+					menuAtual.height = "110px";
+					menuAtual.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+					menuAtual.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+					menu.addControl(menuAtual);
+				}
+				qtdeAtual++;
+				menuAtual.addControl(criarBotaoImagem(i));
+			}
 		}
 
-		if (!window.modoXR)
-			menu.addControl(criarBotao("botaoWebXR", "Modo WebXR", function () {
+		if (!window.modoXR) {
+			const botao = criarBotao("botaoWebXR", "Modo WebXR", function () {
 				window.location.href = "./webxr.html";
-			}));
+			});
+			botao.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+			botao.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+			menu.addControl(botao);
+		}
 
 		ui.addControl(menu);
 	}
