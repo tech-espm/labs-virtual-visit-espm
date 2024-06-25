@@ -1,5 +1,7 @@
 "use strict";
 
+const modoXR = (window.location.href.indexOf("webxr") >= 0);
+
 const imagens = [
 	{
 		url: "./textures/recepcao-jt.jpg",
@@ -47,15 +49,25 @@ let ui = null;
 let cena = null;
 let imagemAtual = 0;
 let menu = null;
+let xrHelper = null;
+let botoesImagemXR = [];
 
 function criarBotao(nome, texto, callback) {
-	const botao = BABYLON.GUI.Button.CreateSimpleButton(nome, texto);
-	botao.paddingBottom = "30px";
-	botao.paddingRight = "30px";
-	botao.width = "160px";
-	botao.height = "80px";
-	botao.color = "black";
-	botao.background = "white";
+	let botao;
+	if (modoXR) {
+		// https://doc.babylonjs.com/typedoc/classes/BABYLON.GUI.HolographicButton
+		botao = new BABYLON.GUI.HolographicButton(nome);
+		menu.addControl(botao);
+		botao.text = texto;
+	} else {
+		botao = BABYLON.GUI.Button.CreateSimpleButton(nome, texto);
+		botao.paddingBottom = "30px";
+		botao.paddingRight = "30px";
+		botao.width = "160px";
+		botao.height = "80px";
+		botao.color = "black";
+		botao.background = "white";
+	}
 	botao.onPointerDownObservable.add(callback);
 	return botao;
 }
@@ -91,6 +103,12 @@ function criarDomo() {
 }
 
 function alternarMenu() {
+	if (modoXR) {
+		for (let i = botoesImagemXR.length - 1; i >= 0; i--)
+			botoesImagemXR[i].isVisible = !botoesImagemXR[i].isVisible;
+		return;
+	}
+
 	if (menu) {
 		camera.inputs.attached.pointers.attachControl(canvas);
 		ui.removeControl(menu);
@@ -119,14 +137,12 @@ function alternarMenu() {
 			}
 		}
 
-		if (!window.modoXR) {
-			const botao = criarBotao("botaoWebXR", "Modo WebXR", function () {
-				window.location.href = "./webxr.html";
-			});
-			botao.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-			botao.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-			menu.addControl(botao);
-		}
+		const botao = criarBotao("botaoWebXR", "Modo WebXR", function () {
+			window.location.href = "./webxr.html";
+		});
+		botao.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+		botao.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+		menu.addControl(botao);
 
 		ui.addControl(menu);
 	}
@@ -147,12 +163,36 @@ async function criarCena() {
 
 	criarDomo();
 
-    ui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+	if (modoXR) {
+		xrHelper = await cena.createDefaultXRExperienceAsync();
 
-	const botao = criarBotao("locais", "Locais", alternarMenu);
-	botao.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    botao.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-	ui.addControl(botao);
+		// https://doc.babylonjs.com/features/featuresDeepDive/gui/gui3D
+		// https://doc.babylonjs.com/typedoc/classes/BABYLON.GUI.SpherePanel
+		ui = new BABYLON.GUI.GUI3DManager(cena);
+		const ancora = new BABYLON.TransformNode("ancora-menu");
+		menu = new BABYLON.GUI.SpherePanel();
+		menu.margin = 0.2;
+		menu.radius = 5;
+		menu.rows = 4;
+		ui.addControl(menu);
+		menu.linkToTransformNode(ancora);
+		menu.position.z = -2; // Move a esfera um pouco para a direita
+		menu.blockLayout = true;
+		criarBotao("locais", "Locais", alternarMenu);
+		for (let i = 0; i < imagens.length; i++) {
+			const botao = criarBotaoImagem(i);
+			botao.isVisible = false;
+			botoesImagemXR.push(botao);
+		}
+		menu.blockLayout = false;
+	} else {
+	    ui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+		const botao = criarBotao("locais", "Locais", alternarMenu);
+		botao.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+		botao.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+		ui.addControl(botao);
+	}
 }
 
 window.addEventListener("resize", function () {
