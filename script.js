@@ -177,6 +177,7 @@ async function criarCena() {
 		ui.addControl(menu);
 		menu.linkToTransformNode(ancora);
 		menu.position.z = -2; // Move a esfera um pouco para a direita
+		menu.position.x = -4; // Move a esfera um pouco para trás
 		menu.blockLayout = true;
 		criarBotao("locais", "Locais", alternarMenu);
 		for (let i = 0; i < imagens.length; i++) {
