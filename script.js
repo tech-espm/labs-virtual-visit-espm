@@ -83,6 +83,11 @@ function criarBotaoImagem(indice) {
 }
 
 function criarBotoesMenuXR(visibilidadeBotoesImagem) {
+	// Depois de depurar o código, quando o Babylon.js está no modo XR
+	// *SEM* o uso de joysticks (usando apenas o ponteiro do olho + timer),
+	// clicar no mesmo botão duas vezes seguidas pode fazer com que o clique
+	// seja ignorado internamente. Por isso estamos recriando todos os botões
+	// toda vez... (O problema não ocorria quando usando o mouse ou um joystick)
 	if (menu) {
 		if (botoesImagemXR) {
 			for (let i = botoesImagemXR.length - 1; i >= 0; i--) {
