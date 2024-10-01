@@ -51,6 +51,7 @@ let imagemAtual = 0;
 let menu = null;
 let xrHelper = null;
 let botoesImagemXR = [];
+let botaoLocaisXR = null;
 
 function criarBotao(nome, texto, callback) {
 	let botao;
@@ -76,11 +77,49 @@ function criarBotaoImagem(indice) {
 	return criarBotao("botaoImagem" + indice, imagens[indice].nome, function () {
 		imagemAtual = indice;
 		alternarMenu();
-		criarDomo();
+		criarDomo(true);
 	});
 }
 
-function criarDomo() {
+function criarBotoesMenuXR() {
+	if (menu) {
+		if (botoesImagemXR) {
+			for (let i = botoesImagemXR.length - 1; i >= 0; i--) {
+				botoesImagemXR[i].dispose();
+				menu.removeControl(botoesImagemXR[i]);
+			}
+		}
+		if (botaoLocaisXR) {
+			botaoLocaisXR.dispose();
+			menu.removeControl(botaoLocaisXR);
+		}
+		botoesImagemXR = [];
+		botaoLocaisXR = null;
+		ui.removeControl(menu);
+		menu.dispose();
+		menu = null;
+	}
+
+	const ancora = new BABYLON.TransformNode("ancora-menu");
+	menu = new BABYLON.GUI.SpherePanel();
+	menu.margin = 0.2;
+	menu.radius = 5;
+	menu.rows = 4;
+	ui.addControl(menu);
+	menu.linkToTransformNode(ancora);
+	menu.position.z = -2; // Move a esfera um pouco para a direita
+	menu.position.x = -4; // Move a esfera um pouco para trás
+	menu.blockLayout = true;
+	botaoLocaisXR = criarBotao("locais", "Locais", alternarMenu);
+	for (let i = 0; i < imagens.length; i++) {
+		const botao = criarBotaoImagem(i);
+		botao.isVisible = false;
+		botoesImagemXR.push(botao);
+	}
+	menu.blockLayout = false;
+}
+
+function criarDomo(recriarMenuXR) {
 	if (domo) {
 		domo.dispose();
 		domo = null;
@@ -100,6 +139,9 @@ function criarDomo() {
 
 	// Faz a câmera apontar para frente
 	camera.alpha = Math.PI;
+
+	if (recriarMenuXR && modoXR)
+		criarBotoesMenuXR();
 }
 
 function alternarMenu() {
@@ -161,7 +203,7 @@ async function criarCena() {
 	// https://doc.babylonjs.com/typedoc/classes/BABYLON.ArcRotateCamera
 	camera.inertia = 0.75; // Valor padrão = 0.9
 
-	criarDomo();
+	criarDomo(false);
 
 	if (modoXR) {
 		xrHelper = await cena.createDefaultXRExperienceAsync();
@@ -169,23 +211,7 @@ async function criarCena() {
 		// https://doc.babylonjs.com/features/featuresDeepDive/gui/gui3D
 		// https://doc.babylonjs.com/typedoc/classes/BABYLON.GUI.SpherePanel
 		ui = new BABYLON.GUI.GUI3DManager(cena);
-		const ancora = new BABYLON.TransformNode("ancora-menu");
-		menu = new BABYLON.GUI.SpherePanel();
-		menu.margin = 0.2;
-		menu.radius = 5;
-		menu.rows = 4;
-		ui.addControl(menu);
-		menu.linkToTransformNode(ancora);
-		menu.position.z = -2; // Move a esfera um pouco para a direita
-		menu.position.x = -4; // Move a esfera um pouco para trás
-		menu.blockLayout = true;
-		criarBotao("locais", "Locais", alternarMenu);
-		for (let i = 0; i < imagens.length; i++) {
-			const botao = criarBotaoImagem(i);
-			botao.isVisible = false;
-			botoesImagemXR.push(botao);
-		}
-		menu.blockLayout = false;
+		criarBotoesMenuXR();
 	} else {
 	    ui = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
