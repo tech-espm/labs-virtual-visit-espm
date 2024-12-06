@@ -4,7 +4,7 @@
     <a href="https://www.espm.br/cursos-de-graduacao/sistemas-de-informacao/"><img src="https://raw.githubusercontent.com/tech-espm/misc-template/main/logo.png" alt="Sistemas de Informação ESPM" style="width: 375px;"/></a>
 </p>
 
-# Visitas Virtual à ESPM
+# Visita Virtual à ESPM
 
 ### 2024-01
 
